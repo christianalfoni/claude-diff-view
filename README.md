@@ -22,20 +22,11 @@ This installs the `/changes` slash command into `~/.claude/commands/` so you can
 
 ## Usage
 
-### In Claude Code
-
 ```
 /changes              # review uncommitted changes against HEAD
 /changes --staged     # review staged changes only
 /changes main         # review changes against a branch or commit
 /changes v1.0..v2.0   # review a commit range
-```
-
-### Standalone
-
-```bash
-npx claude-diff-view HEAD~3
-npx claude-diff-view main..feature-branch
 ```
 
 ---
@@ -54,7 +45,7 @@ npx claude-diff-view main..feature-branch
 
 ```
 You type /changes in Claude Code
-  Claude runs: npx claude-diff-view HEAD   ← blocks
+  Claude runs: npx claude-diff-view HEAD   ← blocks (uses npx cache)
     → parses git diff
     → starts local HTTP server
     → opens browser tab
