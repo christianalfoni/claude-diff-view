@@ -26,7 +26,7 @@ That's it. On first run it installs the `/changes` slash command into `~/.claude
 
 ```
 /changes              # review uncommitted changes against HEAD
-/changes --cached     # review staged changes only
+/changes --staged     # review staged changes only
 /changes main         # review changes against a branch or commit
 /changes v1.0..v2.0   # review a commit range
 ```
