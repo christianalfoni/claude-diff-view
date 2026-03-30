@@ -30,13 +30,16 @@ This command opens a browser-based diff viewer — it **blocks intentionally** w
 When it exits, its stdout contains a structured prompt mapping each comment to its exact file and hunk. Address every comment in that output.
 `;
 
+function installSlashCommand() {
+  const dest = path.join(homedir(), '.claude', 'commands', 'changes.md');
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.writeFileSync(dest, SLASH_COMMAND);
+  process.stderr.write(`✓  Installed /changes slash command → ${dest}\n`);
+}
+
 function ensureSlashCommand() {
   const dest = path.join(homedir(), '.claude', 'commands', 'changes.md');
-  if (!fs.existsSync(dest)) {
-    fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.writeFileSync(dest, SLASH_COMMAND);
-    process.stderr.write(`  Installed /changes slash command → ${dest}\n`);
-  }
+  if (!fs.existsSync(dest)) installSlashCommand();
 }
 
 
@@ -568,10 +571,11 @@ renderAll();
 // ── HTTP Server ───────────────────────────────────────────────────────────────
 
 function openBrowser(url) {
-  const cmd = platform() === 'darwin' ? 'open'
-            : platform() === 'win32'  ? 'start'
-            : 'xdg-open';
-  try { execFileSync(cmd, [url]); } catch { /* ignore */ }
+  try {
+    if (platform() === 'darwin')     execFileSync('open', [url]);
+    else if (platform() === 'win32') execFileSync('cmd', ['/c', 'start', '', url]);
+    else                             execFileSync('xdg-open', [url]);
+  } catch { /* ignore */ }
 }
 
 function findFreePort() {
@@ -620,12 +624,19 @@ function startServer(html, port) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  const args = process.argv.slice(2);
+
+  if (args[0] === 'install') {
+    installSlashCommand();
+    process.exit(0);
+  }
+
   ensureSlashCommand();
-  const args = process.argv.slice(2).length ? process.argv.slice(2) : ['HEAD'];
+  const diffArgs = args.length ? args : ['HEAD'];
 
   let diffText;
   try {
-    diffText = execFileSync('git', ['diff', ...args], { encoding: 'utf8' });
+    diffText = execFileSync('git', ['diff', ...diffArgs], { encoding: 'utf8' });
   } catch (e) {
     process.stderr.write(`git diff failed:\n${e.stderr || e.message}\n`);
     process.exit(1);

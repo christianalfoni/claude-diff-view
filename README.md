@@ -13,10 +13,10 @@ Claude receives a structured prompt that maps every comment to its exact file an
 ## Install
 
 ```bash
-npx claude-diff-view
+npx claude-diff-view install
 ```
 
-That's it. On first run it installs the `/changes` slash command into `~/.claude/commands/` automatically.
+This installs the `/changes` slash command into `~/.claude/commands/` so you can use it from Claude Code.
 
 ---
 
