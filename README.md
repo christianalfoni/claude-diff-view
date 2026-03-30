@@ -1,22 +1,38 @@
-# claude-diff-view
+# agent-diff-view
 
-A browser-based interactive git diff reviewer for [Claude Code](https://claude.ai/code).
+A browser-based interactive git diff reviewer for AI coding agents.
 
-![claude-diff-view](screenshot.png)
+![agent-diff-view](screenshot.png)
 
-Type `/changes` in Claude Code and a local browser tab opens. Browse changed files,
+Type `/changes` in your AI coding harness and a local browser tab opens. Browse changed files,
 navigate hunks, leave targeted comments on the ones that matter, hit **⌘↵** to submit —
-Claude receives a structured prompt that maps every comment to its exact file and hunk.
+the agent receives a structured prompt that maps every comment to its exact file and hunk.
+
+---
+
+## Supported harnesses
+
+| Harness | Command | Installs to |
+|---------|---------|-------------|
+| **Claude Code** | `/changes` | `~/.claude/commands/changes.md` |
+| **OpenCode** | `/changes` | `~/.config/opencode/commands/changes.md` |
+| **Gemini CLI** | `/changes` | `~/.gemini/commands/changes.toml` |
+| **Codex CLI** (OpenAI) | `$changes` | `~/.agents/skills/changes/SKILL.md` |
+| **pi.dev** | `/changes` | `~/.pi/agent/prompts/changes.md` |
+
+> **Note:** Codex CLI uses `$changes` (not `/changes`) because it uses a skills system rather than
+> slash commands. The skill is configured to only trigger when explicitly invoked — it will not
+> auto-activate based on task descriptions.
 
 ---
 
 ## Install
 
 ```bash
-npx claude-diff-view install
+npx agent-diff-view install
 ```
 
-This installs the `/changes` slash command into `~/.claude/commands/` so you can use it from Claude Code.
+This opens an interactive picker — select your harness and the command is installed.
 
 ---
 
@@ -28,6 +44,8 @@ This installs the `/changes` slash command into `~/.claude/commands/` so you can
 /changes main         # review changes against a branch or commit
 /changes v1.0..v2.0   # review a commit range
 ```
+
+For Codex CLI, replace `/changes` with `$changes`.
 
 ---
 
@@ -44,8 +62,8 @@ This installs the `/changes` slash command into `~/.claude/commands/` so you can
 ## How it works
 
 ```
-You type /changes in Claude Code
-  Claude runs: npx claude-diff-view HEAD   ← blocks (uses npx cache)
+You type /changes in your AI coding harness
+  The agent runs: npx agent-diff-view HEAD   ← blocks
     → parses git diff
     → starts local HTTP server
     → opens browser tab
@@ -53,7 +71,7 @@ You type /changes in Claude Code
   You: browse files, annotate hunks, hit ⌘↵
     → builds structured prompt
     → prints to stdout, exits
-  Claude receives the output and addresses each comment
+  The agent receives the output and addresses each comment
 ```
 
 No background processes are left running. No npm dependencies — only Node built-ins.

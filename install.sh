@@ -3,23 +3,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# ── Install the changes script ────────────────────────────────────────────────
+# ── Install the agent-diff-view script ───────────────────────────────────────
 INSTALL_DIR="${HOME}/.local/bin"
 mkdir -p "$INSTALL_DIR"
-cp "$SCRIPT_DIR/claude-diff-view" "$INSTALL_DIR/claude-diff-view"
-chmod +x "$INSTALL_DIR/claude-diff-view"
-echo "✓  Installed: $INSTALL_DIR/claude-diff-view"
+cp "$SCRIPT_DIR/agent-diff-view" "$INSTALL_DIR/agent-diff-view"
+chmod +x "$INSTALL_DIR/agent-diff-view"
+echo "✓  Installed: $INSTALL_DIR/agent-diff-view"
 
 # Warn if not on PATH
-if ! command -v changes &>/dev/null; then
+if ! command -v agent-diff-view &>/dev/null; then
   echo ""
   echo "   ~/.local/bin is not on your PATH. Add this to your shell profile:"
   echo "   export PATH=\"\$HOME/.local/bin:\$PATH\""
   echo ""
 fi
 
-# ── Install the Claude Code slash command ─────────────────────────────────────
-COMMANDS_DIR="${HOME}/.claude/commands"
-mkdir -p "$COMMANDS_DIR"
-cp "$SCRIPT_DIR/.claude/commands/changes.md" "$COMMANDS_DIR/changes.md"
-echo "✓  Installed: $COMMANDS_DIR/changes.md  (/changes slash command)"
+echo ""
+echo "Now run 'agent-diff-view install' to set up your AI coding harness."

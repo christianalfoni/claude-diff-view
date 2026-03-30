@@ -1,17 +1,19 @@
 #!/usr/bin/env node
-// changes — browser-based interactive git diff reviewer for Claude Code.
+// agent-diff-view — browser-based interactive git diff reviewer for AI coding agents.
 //
 // Opens a local browser UI where you annotate specific hunks with comments,
 // then outputs a structured prompt to stdout and exits.
 //
-// Requires Node.js (already present on any machine with Claude Code installed).
-// No npm packages — only Node built-ins.
+// Works with: Claude Code, OpenCode, Gemini CLI, Codex CLI (OpenAI), pi.dev
+//
+// Requires Node.js. No npm packages — only Node built-ins.
 //
 // Usage:
-//   changes             # diff against HEAD
-//   changes --cached    # staged changes
-//   changes main        # diff against branch or commit
-//   changes a..b        # range diff
+//   agent-diff-view install       # interactive harness picker
+//   agent-diff-view               # diff against HEAD
+//   agent-diff-view --cached      # staged changes
+//   agent-diff-view main          # diff against branch or commit
+//   agent-diff-view a..b          # range diff
 
 'use strict';
 
@@ -21,25 +23,117 @@ const path             = require('path');
 const { execFileSync } = require('child_process');
 const { platform, homedir } = require('os');
 
-// ── Slash command content (self-installed on first run) ───────────────────────
+// ── Harness definitions ──────────────────────────────────────────────────────
 
-const SLASH_COMMAND = `Execute \`npx claude-diff-view $ARGUMENTS\` using the bash tool and wait for it to exit.
+const CORE_INSTRUCTION = `This command opens a browser-based diff viewer — it **blocks intentionally** while the user annotates specific hunks with review comments. It exits on its own once they submit. Do not interrupt it or time out early.
 
-This command opens a browser-based diff viewer — it **blocks intentionally** while the user annotates specific hunks with review comments. It exits on its own once they submit. Do not interrupt it or time out early.
+When it exits, its stdout contains a structured prompt mapping each comment to its exact file and hunk. Address every comment in that output.`;
 
-When it exits, its stdout contains a structured prompt mapping each comment to its exact file and hunk. Address every comment in that output.
-`;
+const HARNESSES = [
+  {
+    id: 'claude',
+    label: 'Claude Code',
+    dest: path.join(homedir(), '.claude', 'commands', 'changes.md'),
+    content: `Execute \`npx agent-diff-view $ARGUMENTS\` using the bash tool and wait for it to exit.\n\n${CORE_INSTRUCTION}\n`,
+  },
+  {
+    id: 'opencode',
+    label: 'OpenCode',
+    dest: path.join(homedir(), '.config', 'opencode', 'commands', 'changes.md'),
+    content: `---\ndescription: Open interactive diff review in browser\n---\n\nExecute \`npx agent-diff-view $ARGUMENTS\` using the bash tool and wait for it to exit.\n\n${CORE_INSTRUCTION}\n`,
+  },
+  {
+    id: 'gemini',
+    label: 'Gemini CLI',
+    dest: path.join(homedir(), '.gemini', 'commands', 'changes.toml'),
+    content: `description = "Open interactive diff review in browser"\nprompt = """\nExecute the following command and wait for it to exit. Do not interrupt it or time out early — it opens a browser tab for interactive code review and blocks until the user submits.\n\n!{npx agent-diff-view {{args}}}\n\nThe output above contains a structured prompt mapping review comments to specific files and diff hunks. Address every comment in the output.\n"""\n`,
+  },
+  {
+    id: 'openai',
+    label: 'Codex CLI (OpenAI)',
+    dest: path.join(homedir(), '.agents', 'skills', 'changes', 'SKILL.md'),
+    content: `---\nname: changes\ndescription: Open interactive diff review in browser and address review comments\n---\n\nExecute \`npx agent-diff-view\` using bash and wait for it to exit.\n\n${CORE_INSTRUCTION}\n`,
+    extra: [
+      {
+        dest: path.join(homedir(), '.agents', 'skills', 'changes', 'agents', 'openai.yaml'),
+        content: `policy:\n  allow_implicit_invocation: false\n`,
+      },
+    ],
+  },
+  {
+    id: 'pi',
+    label: 'pi.dev',
+    dest: path.join(homedir(), '.pi', 'agent', 'prompts', 'changes.md'),
+    content: `---\ndescription: Open interactive diff review in browser\n---\n\nExecute \`npx agent-diff-view $ARGUMENTS\` using the bash tool and wait for it to exit.\n\n${CORE_INSTRUCTION}\n`,
+  },
+];
 
-function installSlashCommand() {
-  const dest = path.join(homedir(), '.claude', 'commands', 'changes.md');
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest, SLASH_COMMAND);
-  process.stderr.write(`✓  Installed /changes slash command → ${dest}\n`);
-}
+// ── Interactive harness picker ───────────────────────────────────────────────
 
-function ensureSlashCommand() {
-  const dest = path.join(homedir(), '.claude', 'commands', 'changes.md');
-  if (!fs.existsSync(dest)) installSlashCommand();
+function installInteractive() {
+  return new Promise((resolve) => {
+    let selected = 0;
+
+    function render() {
+      // Move cursor up to overwrite previous render (except first time)
+      const lines = HARNESSES.length + 2; // heading + blank + items
+      process.stderr.write(`\x1b[${lines}A`);
+      process.stderr.write('\x1b[J'); // clear from cursor to end
+      draw();
+    }
+
+    function draw() {
+      process.stderr.write('\x1b[1mSelect your AI coding harness:\x1b[0m\n\n');
+      for (let i = 0; i < HARNESSES.length; i++) {
+        const cursor = i === selected ? '\x1b[36m  ❯ ' : '    ';
+        const label = HARNESSES[i].label;
+        const reset = '\x1b[0m';
+        process.stderr.write(`${cursor}${label}${reset}\n`);
+      }
+    }
+
+    if (!process.stdin.isTTY) {
+      process.stderr.write('Non-interactive terminal. Run agent-diff-view install in a terminal.\n');
+      process.exit(1);
+    }
+
+    // Initial draw
+    draw();
+
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    process.stdin.on('data', (key) => {
+      if (key === '\u0003' || key === 'q') { // Ctrl+C or q
+        process.stdin.setRawMode(false);
+        process.stderr.write('\nCancelled.\n');
+        process.exit(0);
+      }
+
+      if (key === '\r' || key === '\n') { // Enter
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        const harness = HARNESSES[selected];
+        fs.mkdirSync(path.dirname(harness.dest), { recursive: true });
+        fs.writeFileSync(harness.dest, harness.content);
+        if (harness.extra) {
+          for (const file of harness.extra) {
+            fs.mkdirSync(path.dirname(file.dest), { recursive: true });
+            fs.writeFileSync(file.dest, file.content);
+          }
+        }
+        const cmd = harness.id === 'openai' ? '$changes' : '/changes';
+        process.stderr.write(`\n\x1b[32m✓\x1b[0m  Installed ${cmd} for ${harness.label} → ${harness.dest}\n`);
+        resolve();
+        return;
+      }
+
+      // Arrow keys come as escape sequences: \x1b[A (up), \x1b[B (down)
+      if (key === '\x1b[A' && selected > 0) { selected--; render(); }
+      if (key === '\x1b[B' && selected < HARNESSES.length - 1) { selected++; render(); }
+    });
+  });
 }
 
 
@@ -627,11 +721,10 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args[0] === 'install') {
-    installSlashCommand();
+    await installInteractive();
     process.exit(0);
   }
 
-  ensureSlashCommand();
   const diffArgs = args.length ? args : ['HEAD'];
 
   let diffText;

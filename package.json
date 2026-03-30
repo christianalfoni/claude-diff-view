@@ -1,12 +1,12 @@
 {
-  "name": "claude-diff-view",
-  "version": "1.0.1",
-  "description": "Browser-based interactive git diff reviewer for Claude Code",
+  "name": "agent-diff-view",
+  "version": "2.0.0",
+  "description": "Browser-based interactive git diff reviewer for AI coding agents",
   "bin": {
-    "claude-diff-view": "./claude-diff-view"
+    "agent-diff-view": "./agent-diff-view"
   },
   "files": [
-    "claude-diff-view"
+    "agent-diff-view"
   ],
   "engines": {
     "node": ">=16"
@@ -14,7 +14,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/christianalfoni/claude-diff-view.git"
+    "url": "https://github.com/christianalfoni/agent-diff-view.git"
   },
-  "keywords": ["claude", "claude-code", "git", "diff", "review"]
+  "keywords": ["ai", "agent", "claude", "gemini", "openai", "codex", "opencode", "git", "diff", "review"]
 }
